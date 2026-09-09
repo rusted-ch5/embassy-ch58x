@@ -6,7 +6,7 @@ The crate currently provides:
 
 - CH582 and CH585 interrupt vector tables;
 - type-safe interrupt binding for Embassy drivers;
-- a thread-mode Embassy executor with a short interrupt-visible idle window;
+- a thread-mode Embassy executor with race-free event sleep;
 - an optional one-microsecond SysTick time driver;
 - interrupt-backed asynchronous GPIO input waits;
 - access to `ch58x-hal` through `embassy_ch58x::hal`.
