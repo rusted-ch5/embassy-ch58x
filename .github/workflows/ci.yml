@@ -16,10 +16,14 @@ jobs:
         with:
           toolchain: "1.87"
           targets: riscv32imc-unknown-none-elf
-          components: rustfmt
+          components: rustfmt, clippy
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check CH582
         run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch582,gpio,time-driver,uart,usb
       - name: Check CH585
         run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch585,gpio,time-driver,uart,usb
+      - name: Clippy CH582
+        run: cargo clippy --target riscv32imc-unknown-none-elf --no-default-features --features ch582,gpio,time-driver,uart,usb -- -D warnings
+      - name: Clippy CH585
+        run: cargo clippy --target riscv32imc-unknown-none-elf --no-default-features --features ch585,gpio,time-driver,uart,usb -- -D warnings
