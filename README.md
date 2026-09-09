@@ -9,6 +9,7 @@ The crate currently provides:
 - a thread-mode Embassy executor with race-free event sleep;
 - an optional one-microsecond SysTick time driver;
 - interrupt-backed asynchronous GPIO input waits;
+- interrupt-driven UART with cancellation-safe async I/O;
 - access to `ch58x-hal` through `embassy_ch58x::hal`.
 
 ## Status

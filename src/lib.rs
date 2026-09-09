@@ -14,6 +14,8 @@ pub mod gpio;
 pub mod interrupt;
 #[cfg(feature = "time-driver")]
 pub mod time;
+#[cfg(feature = "uart")]
+pub mod uart;
 
 /// Initializes the HAL and Embassy time driver, then returns owned peripherals.
 pub fn init(config: hal::sysctl::Config) -> hal::Peripherals {
