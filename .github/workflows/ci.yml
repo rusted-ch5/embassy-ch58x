@@ -7,23 +7,100 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_INCREMENTAL: "0"
+
 jobs:
-  check:
+  quality:
+    name: Formatting and async policy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.87"
           targets: riscv32imc-unknown-none-elf
-          components: rustfmt, clippy
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Check CH582
-        run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch582,gpio,time-driver,uart,usb
-      - name: Check CH585
-        run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch585,gpio,time-driver,uart,usb
-      - name: Clippy CH582
-        run: cargo clippy --target riscv32imc-unknown-none-elf --no-default-features --features ch582,gpio,time-driver,uart,usb -- -D warnings
-      - name: Clippy CH585
-        run: cargo clippy --target riscv32imc-unknown-none-elf --no-default-features --features ch585,gpio,time-driver,uart,usb -- -D warnings
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+      - name: Reject blocking executor adapters
+        run: |
+          if grep -R -n -E 'arch-spin|block_on|std::thread::sleep' src Cargo.toml; then
+            exit 1
+          fi
+      - name: Reject a missing chip selection
+        run: |
+          if cargo check --target riscv32imc-unknown-none-elf --no-default-features 2>feature-error.log; then
+            exit 1
+          fi
+          grep -F 'requires exactly one chip feature' feature-error.log
+      - name: Reject simultaneous chip selections
+        run: |
+          if cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch582,ch585 2>feature-error.log; then
+            exit 1
+          fi
+          grep -F 'chip features ch582 and ch585 are mutually exclusive' feature-error.log
+
+  feature-matrix:
+    name: Embassy ${{ matrix.chip }} / ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { chip: ch582, profile: core, features: ch582 }
+          - { chip: ch582, profile: gpio, features: "ch582,gpio" }
+          - { chip: ch582, profile: time, features: "ch582,time-driver" }
+          - { chip: ch582, profile: uart, features: "ch582,uart" }
+          - { chip: ch582, profile: usb, features: "ch582,usb" }
+          - { chip: ch582, profile: complete, features: "ch582,gpio,time-driver,uart,usb" }
+          - { chip: ch585, profile: core, features: ch585 }
+          - { chip: ch585, profile: gpio, features: "ch585,gpio" }
+          - { chip: ch585, profile: time, features: "ch585,time-driver" }
+          - { chip: ch585, profile: uart, features: "ch585,uart" }
+          - { chip: ch585, profile: usb, features: "ch585,usb" }
+          - { chip: ch585, profile: complete, features: "ch585,gpio,time-driver,uart,usb" }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.87"
+          targets: riscv32imc-unknown-none-elf
+      - run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features "${{ matrix.features }}"
+
+  lint:
+    name: Clippy and docs / ${{ matrix.chip }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        chip: [ch582, ch585]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.87"
+          targets: riscv32imc-unknown-none-elf
+          components: clippy
+      - run: cargo clippy --target riscv32imc-unknown-none-elf --no-default-features --features "${{ matrix.chip }},gpio,time-driver,uart,usb" -- -D warnings
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --target riscv32imc-unknown-none-elf --no-deps --no-default-features --features "${{ matrix.chip }},gpio,time-driver,uart,usb"
+
+  firmware-link:
+    name: Link CH582M EVT board only examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: rusted-ch5/ch58x-rs-examples
+          path: examples-repo
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.87"
+          targets: riscv32imc-unknown-none-elf
+      - name: Link examples against this Embassy checkout
+        run: |
+          cd examples-repo
+          for package in ch582-embassy-blinky ch582-uart-echo ch582-usb-hid; do
+            cargo build --release -p "$package" \
+              --config "patch.\"https://github.com/rusted-ch5/embassy-ch58x.git\".embassy-ch58x.path=\"$GITHUB_WORKSPACE\""
+          done
