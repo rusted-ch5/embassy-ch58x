@@ -9,6 +9,8 @@ pub use ch58x_hal as hal;
 pub use hal::pac;
 
 pub mod executor;
+#[cfg(feature = "gpio")]
+pub mod gpio;
 pub mod interrupt;
 #[cfg(feature = "time-driver")]
 pub mod time;

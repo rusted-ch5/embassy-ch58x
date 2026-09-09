@@ -8,6 +8,7 @@ The crate currently provides:
 - type-safe interrupt binding for Embassy drivers;
 - a thread-mode Embassy executor with a short interrupt-visible idle window;
 - an optional one-microsecond SysTick time driver;
+- interrupt-backed asynchronous GPIO input waits;
 - access to `ch58x-hal` through `embassy_ch58x::hal`.
 
 ## Status

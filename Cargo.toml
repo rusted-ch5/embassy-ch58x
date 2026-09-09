@@ -14,14 +14,18 @@ categories = ["embedded", "no-std", "asynchronous", "hardware-support"]
 default = ["ch582"]
 ch582 = ["ch58x-hal/ch582", "qingke/v4", "qingke-rt/v4"]
 ch585 = ["ch58x-hal/ch585", "qingke/v3", "qingke-rt/ch585-v3c"]
+gpio = ["dep:embassy-sync", "dep:embedded-hal", "dep:portable-atomic"]
 time-driver = ["dep:embassy-time-driver", "dep:embassy-time-queue-utils"]
 
 [dependencies]
 ch58x-hal = { git = "https://github.com/rusted-ch5/ch58x-hal.git", rev = "e57bd7d8b2ea94fad5c41d3d034e059221b72bca", default-features = false }
 critical-section = "1.2"
 embassy-executor = { version = "0.9", features = ["arch-spin", "executor-thread"] }
+embassy-sync = { version = "0.8", optional = true }
 embassy-time-driver = { version = "0.2.2", features = ["tick-hz-1_000_000"], optional = true }
 embassy-time-queue-utils = { version = "0.3.2", features = ["generic-queue-8"], optional = true }
+embedded-hal = { version = "1.0", optional = true }
+portable-atomic = { version = "1.15", features = ["critical-section"], optional = true }
 qingke = { version = "0.6.1", default-features = false }
 qingke-rt = { git = "https://github.com/rusted-ch5/qingke-rs.git", rev = "b107f8b4cce3495ff807738cdbb34f25819ca680", default-features = false, features = ["highcode"] }
 
