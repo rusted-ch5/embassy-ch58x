@@ -10,6 +10,8 @@ The crate currently provides:
 - an optional one-microsecond SysTick time driver;
 - interrupt-backed asynchronous GPIO input waits;
 - interrupt-driven UART with cancellation-safe async I/O;
+- an interrupt-driven USBFS device driver with cancellation-safe endpoint
+  transfers;
 - access to `ch58x-hal` through `embassy_ch58x::hal`.
 
 ## Status
