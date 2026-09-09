@@ -95,12 +95,12 @@ jobs:
           path: examples-repo
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: "1.87"
+          toolchain: "1.92"
           targets: riscv32imc-unknown-none-elf
       - name: Link examples against this Embassy checkout
         run: |
           cd examples-repo
-          for package in ch582-embassy-blinky ch582-uart-echo ch582-usb-hid; do
+          for package in ch582-embassy-blinky ch582-uart-echo ch582-usb-hid rmk-ch58x; do
             cargo build --release -p "$package" \
               --config "patch.\"https://github.com/rusted-ch5/embassy-ch58x.git\".embassy-ch58x.path=\"$GITHUB_WORKSPACE\""
           done
