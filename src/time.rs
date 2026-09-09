@@ -79,18 +79,19 @@ fn write_counter_register(offset: usize, value: u64) {
 const fn ch585_alarm_counter(target: u64, now: u64) -> u64 {
     let current_epoch = now >> 32;
     let target_epoch = target >> 32;
-    // CMP is only 32 bits on CH585. A deadline in the immediately following
-    // epoch can still be armed directly: the low counter must wrap before it
-    // can equal the target low word, and the alarm read then advances the
-    // software epoch. Avoiding a separate CMP=0 maintenance interrupt also
-    // avoids an unnecessary wake-up at rollover.
-    //
-    // A deadline more than one epoch away would otherwise fire one epoch too
-    // early, so retain the rollover maintenance compare for that rare case.
-    if target_epoch > current_epoch.saturating_add(1) {
-        (current_epoch + 1) << 32
-    } else {
+    let now_low = now as u32;
+    let target_low = target as u32;
+
+    // CMP is only 32 bits. A next-epoch deadline can be armed directly only
+    // after its low word has already passed in the current epoch. Otherwise
+    // the same low word would match before rollover and wake too early.
+    if target_epoch == current_epoch
+        || (target_epoch == current_epoch.saturating_add(1) && target_low <= now_low)
+    {
         target
+    } else {
+        // Observe the next rollover first, then re-arm the actual deadline.
+        current_epoch.saturating_add(1) << 32
     }
 }
 
@@ -140,24 +141,6 @@ fn clear_systick_pending() {
     unsafe { qingke::pfic::unpend_interrupt(CoreInterrupt::SysTick as u8) };
 }
 
-#[inline(always)]
-fn diagnostic_set_alarm(_at: u64, _now: u64) {}
-
-#[inline(always)]
-fn diagnostic_alarm_past() {}
-
-#[inline(always)]
-fn diagnostic_armed(_at: u64) {}
-
-#[inline(always)]
-fn diagnostic_next(_next: u64) {}
-
-#[inline(always)]
-fn diagnostic_schedule(_changed: bool) {}
-
-#[inline(always)]
-fn diagnostic_irq() {}
-
 struct TimeDriver {
     queue: Mutex<RefCell<Queue>>,
 }
@@ -193,6 +176,9 @@ const _: () = {
         ch585_alarm_counter(0x0000_0002_0000_1234, 0x0000_0001_ffff_0000) == 0x0000_0002_0000_1234
     );
     assert!(
+        ch585_alarm_counter(0x0000_0002_ffff_1234, 0x0000_0001_0000_1000) == 0x0000_0002_0000_0000
+    );
+    assert!(
         ch585_alarm_counter(0x0000_0003_0000_1234, 0x0000_0001_ffff_0000) == 0x0000_0002_0000_0000
     );
     assert!(
@@ -215,10 +201,8 @@ impl TimeDriver {
     fn set_alarm(&self, at: u64) -> bool {
         let systick = unsafe { &*pac::SYSTICK::PTR };
         let now = self.now();
-        diagnostic_set_alarm(at, now);
         systick.ctlr().modify(|_, w| w.stie().clear_bit());
         if at <= now {
-            diagnostic_alarm_past();
             clear_systick_pending();
             return false;
         }
@@ -235,10 +219,8 @@ impl TimeDriver {
         write_counter_register(SYSTICK_CMP_OFFSET, compare);
         clear_systick_pending();
         if at <= self.now() {
-            diagnostic_alarm_past();
             return false;
         }
-        diagnostic_armed(at);
         systick.ctlr().modify(|_, w| w.stie().set_bit());
         true
     }
@@ -247,10 +229,8 @@ impl TimeDriver {
         critical_section::with(|cs| {
             let mut queue = self.queue.borrow(cs).borrow_mut();
             let mut next = queue.next_expiration(self.now());
-            diagnostic_next(next);
             while !self.set_alarm(next) {
                 next = queue.next_expiration(self.now());
-                diagnostic_next(next);
             }
         });
     }
@@ -265,7 +245,6 @@ impl Driver for TimeDriver {
         critical_section::with(|cs| {
             let mut queue = self.queue.borrow(cs).borrow_mut();
             let changed = queue.schedule_wake(at, waker);
-            diagnostic_schedule(changed);
             if changed {
                 let mut next = queue.next_expiration(self.now());
                 while !self.set_alarm(next) {
@@ -281,7 +260,6 @@ impl Driver for TimeDriver {
 // the machine-interrupt return state, preventing subsequent interrupts.
 #[qingke_rt::interrupt]
 fn SysTick() {
-    diagnostic_irq();
     let systick = unsafe { &*pac::SYSTICK::PTR };
     systick.ctlr().modify(|_, w| w.stie().clear_bit());
     // CH58x clears CNTIF by writing zero.
@@ -302,7 +280,10 @@ pub(crate) fn init() {
         };
     });
     write_counter_register(SYSTICK_CNT_OFFSET, 0);
+    #[cfg(feature = "ch582")]
     write_counter_register(SYSTICK_CMP_OFFSET, u64::MAX);
+    #[cfg(feature = "ch585")]
+    write_counter_register(SYSTICK_CMP_OFFSET, 0);
     clear_systick_pending();
     systick.ctlr().write(|w| {
         w.stclk()
@@ -316,6 +297,10 @@ pub(crate) fn init() {
             .ste()
             .set_bit()
     });
+    // Keep the software epoch monotonic even if no application timer is
+    // scheduled for an entire 32-bit counter period.
+    #[cfg(feature = "ch585")]
+    systick.ctlr().modify(|_, w| w.stie().set_bit());
 
     unsafe {
         qingke::pfic::set_priority(CoreInterrupt::SysTick as u8, Priority::P15.into());
