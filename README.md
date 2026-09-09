@@ -2,6 +2,9 @@
 
 Embassy async runtime support for WCH CH58x microcontrollers.
 
+The crates.io package is `embassy-ch58x-rs`; its Rust library name remains
+`embassy_ch58x`.
+
 The crate currently provides:
 
 - CH582 and CH585 interrupt vector tables;
@@ -12,7 +15,8 @@ The crate currently provides:
 - interrupt-driven UART with cancellation-safe async I/O;
 - an interrupt-driven USBFS device driver with cancellation-safe endpoint
   transfers;
-- access to `ch58x-hal` through `embassy_ch58x::hal`.
+- access to the rusted-ch5 `ch58x-hal-rs` package through
+  `embassy_ch58x::hal`.
 
 ## Status
 

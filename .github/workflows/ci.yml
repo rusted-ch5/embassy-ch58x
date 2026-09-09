@@ -102,5 +102,5 @@ jobs:
           cd examples-repo
           for package in ch582-embassy-blinky ch582-uart-echo ch582-usb-hid rmk-ch58x; do
             cargo build --release -p "$package" \
-              --config "patch.\"https://github.com/rusted-ch5/embassy-ch58x.git\".embassy-ch58x.path=\"$GITHUB_WORKSPACE\""
+              --config "patch.\"https://github.com/rusted-ch5/embassy-ch58x.git\".embassy-ch58x-rs.path=\"$GITHUB_WORKSPACE\""
           done

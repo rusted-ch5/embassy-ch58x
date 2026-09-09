@@ -1,24 +1,29 @@
 [package]
-name = "embassy-ch58x"
+name = "embassy-ch58x-rs"
 version = "0.1.0-alpha.1"
 edition = "2024"
 rust-version = "1.87"
 description = "Embassy async runtime support for WCH CH58x microcontrollers"
 repository = "https://github.com/rusted-ch5/embassy-ch58x"
 homepage = "https://github.com/rusted-ch5/embassy-ch58x"
+documentation = "https://docs.rs/embassy-ch58x-rs"
 license = "MIT OR Apache-2.0"
 keywords = ["wch", "qingke", "embassy", "async", "no-std"]
 categories = ["embedded", "no-std", "asynchronous", "hardware-support"]
 
+[lib]
+# Keep the established source-level crate name for existing firmware.
+name = "embassy_ch58x"
+
 [features]
 default = ["ch582"]
-ch582 = ["ch58x-hal/ch582", "qingke/v4", "qingke-rt/v4"]
-ch585 = ["ch58x-hal/ch585", "qingke/v3", "qingke-rt/ch585-v3c"]
+ch582 = ["ch58x-hal-rs/ch582", "qingke/v4", "qingke-rs/v4"]
+ch585 = ["ch58x-hal-rs/ch585", "qingke/v3", "qingke-rs/ch585-v3c"]
 gpio = ["dep:embassy-sync", "dep:embedded-hal", "dep:embedded-hal-async"]
 time-driver = ["dep:embassy-time-driver", "dep:embassy-time-queue-utils"]
 uart = [
     "time-driver",
-    "ch58x-hal/uart",
+    "ch58x-hal-rs/uart",
     "dep:embassy-sync",
     "dep:embassy-time",
     "dep:embedded-io",
@@ -32,7 +37,7 @@ usb = [
 ]
 
 [dependencies]
-ch58x-hal = { git = "https://github.com/rusted-ch5/ch58x-hal.git", rev = "3558211a098f7bf669e69a1d68f6150ab5893019", default-features = false }
+ch58x-hal-rs = { version = "=0.1.0-alpha.1", git = "https://github.com/rusted-ch5/ch58x-hal.git", rev = "051d966243e3bfa6a62529e9039ea979fec78d3a", default-features = false }
 critical-section = "1.2"
 embassy-executor = { version = "0.9", features = ["executor-thread"] }
 embassy-sync = { version = "0.8", optional = true }
@@ -46,6 +51,6 @@ embedded-io = { version = "0.6", optional = true }
 embedded-io-async = { version = "0.6", optional = true }
 portable-atomic = { version = "1.15", features = ["critical-section"] }
 qingke = { version = "0.6.1", default-features = false }
-qingke-rt = { git = "https://github.com/rusted-ch5/qingke-rs.git", rev = "b107f8b4cce3495ff807738cdbb34f25819ca680", default-features = false, features = ["highcode"] }
+qingke-rs = { version = "=0.6.1-rusted.1", git = "https://github.com/rusted-ch5/qingke-rs.git", rev = "9f2eed7594eb6ea8cd4ae9504e4023698ce05fcd", default-features = false, features = ["highcode"] }
 
 [workspace]
