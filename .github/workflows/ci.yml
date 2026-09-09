@@ -20,6 +20,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check CH582
-        run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch582
+        run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch582,time-driver
       - name: Check CH585
-        run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch585
+        run: cargo check --target riscv32imc-unknown-none-elf --no-default-features --features ch585,time-driver

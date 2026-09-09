@@ -10,3 +10,13 @@ pub use hal::pac;
 
 pub mod executor;
 pub mod interrupt;
+#[cfg(feature = "time-driver")]
+pub mod time;
+
+/// Initializes the HAL and Embassy time driver, then returns owned peripherals.
+pub fn init(config: hal::sysctl::Config) -> hal::Peripherals {
+    let peripherals = hal::init(config);
+    #[cfg(feature = "time-driver")]
+    time::init();
+    peripherals
+}
